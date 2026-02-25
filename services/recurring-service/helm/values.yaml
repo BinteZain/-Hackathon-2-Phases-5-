@@ -1,0 +1,179 @@
+# Default values for recurring-service
+# This is a YAML-formatted file
+
+# Service name
+nameOverride: ""
+fullnameOverride: "recurring-service"
+
+# Replica count
+replicaCount: 2
+
+# Docker image configuration
+image:
+  repository: ghcr.io/todo-chatbot/recurring-service
+  pullPolicy: Always
+  tag: "latest"
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  dapr.io/enabled: "true"
+  dapr.io/app-id: "recurring-service"
+  dapr.io/app-port: "8081"
+  dapr.io/app-protocol: "http"
+  dapr.io/config: "dapr-config"
+  dapr.io/enable-api-logging: "true"
+  dapr.io/log-level: "info"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8081
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: recurring-service.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Environment variables
+env:
+  SERVICE_NAME: "recurring-service"
+  APP_PORT: 8081
+  DEBUG: false
+  DATABASE_HOST: "postgresql.postgres.svc.cluster.local"
+  DATABASE_PORT: 5432
+  DATABASE_NAME: "todo_chatbot"
+  DATABASE_USER: "postgres"
+  DAPR_HTTP_PORT: 3500
+  DAPR_PUBSUB_NAME: "pubsub-kafka"
+  DAPR_STATE_STORE_NAME: "state-redis"
+  KAFKA_TOPIC_TASK_EVENTS: "task-events"
+  KAFKA_TOPIC_TASK_UPDATES: "task-updates"
+
+# Secret references
+secrets:
+  databasePassword:
+    secretName: "db-credentials"
+    secretKey: "password"
+  redisPassword:
+    secretName: "redis-secret"
+    secretKey: "password"
+
+# Health check configuration
+healthCheck:
+  liveness:
+    path: /live
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  startup:
+    path: /health
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+# Database configuration
+database:
+  enabled: true
+  host: "postgresql.postgres.svc.cluster.local"
+  port: 5432
+  name: "todo_chatbot"
+  user: "postgres"
+  passwordSecret: "db-credentials"
+  passwordKey: "password"
+
+# Dapr configuration
+dapr:
+  enabled: true
+  sidecarImage: ""
+  config: "dapr-config"
+  pubsub: "pubsub-kafka"
+  stateStore: "state-redis"
+  secretStore: "secret-kubernetes"
+  logLevel: "info"
+  enableAPILogging: true
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+    alerts:
+      highErrorRate:
+        enabled: true
+        threshold: 0.05
+        duration: 5m
+      highLatency:
+        enabled: true
+        threshold: 1000  # milliseconds
+        duration: 5m
+
+# Logging configuration
+logging:
+  level: INFO
+  format: "json"

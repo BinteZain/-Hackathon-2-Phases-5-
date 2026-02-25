@@ -1,0 +1,19 @@
+{{- if and .Values.frontend.enabled .Values.frontend.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "todo-app.frontend.fullname" . }}
+  namespace: {{ include "todo-app.namespace" . }}
+  labels:
+    {{- include "todo-app.frontend.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.frontend.pdb.minAvailable }}
+  minAvailable: {{ .Values.frontend.pdb.minAvailable }}
+  {{- end }}
+  {{- if .Values.frontend.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.frontend.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.frontend.selectorLabels" . | nindent 6 }}
+{{- end }}

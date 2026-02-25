@@ -1,0 +1,63 @@
+# Patterns to ignore when building packages.
+# This supports glob patterns.
+*.tgz
+*.tar.gz
+
+# Rendered YAML output
+*.rendered.yaml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Test files
+tests/
+test/
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Node modules
+node_modules/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Helm specific
+.helmignore
+Chart.lock
+charts/
+*.prov
+
+# Qwen Code and other AI
+.qwen/

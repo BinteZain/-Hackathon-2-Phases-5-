@@ -1,0 +1,13 @@
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: audit-service-all-events
+  namespace: default
+spec:
+  topic: +
+  route: /dapr/subscribe/*
+  pubsubname: pubsub-kafka
+  metadata:
+    rawPayload: "true"
+scopes:
+- audit-service

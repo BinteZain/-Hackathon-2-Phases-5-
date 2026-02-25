@@ -1,0 +1,133 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "todo-app.backend.fullname" . }}
+  namespace: {{ include "todo-app.namespace" . }}
+  labels:
+    {{- include "todo-app.backend.labels" . | nindent 4 }}
+  {{- if .Values.backend.deploymentAnnotations }}
+  annotations:
+    {{- toYaml .Values.backend.deploymentAnnotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.backend.hpa.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "todo-app.backend.selectorLabels" . | nindent 8 }}
+        {{- if .Values.backend.podLabels }}
+        {{- toYaml .Values.backend.podLabels | nindent 8 }}
+        {{- end }}
+      {{- if .Values.backend.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.backend.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "todo-app.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "todo-app.backend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      {{- if .Values.backend.initContainers }}
+      initContainers:
+        {{- toYaml .Values.backend.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: backend
+          securityContext:
+            {{- toYaml .Values.backend.containerSecurityContext | nindent 12 }}
+          image: "{{ include "todo-app.imageRepository" (dict "image" .Values.backend.image "context" $) }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.backend.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range .Values.backend.envFromConfigMap }}
+            - name: {{ .name }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $.Values.configMap.name }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- range .Values.backend.envFromSecrets }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .secretKey }}
+                  {{- if .optional }}
+                  optional: {{ .optional }}
+                  {{- end }}
+            {{- end }}
+          {{- if .Values.backend.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.backend.probes.liveness.httpGet.path }}
+              port: {{ .Values.backend.probes.liveness.httpGet.port }}
+            initialDelaySeconds: {{ .Values.backend.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.liveness.failureThreshold }}
+            successThreshold: {{ .Values.backend.probes.liveness.successThreshold }}
+          {{- end }}
+          {{- if .Values.backend.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.backend.probes.readiness.httpGet.path }}
+              port: {{ .Values.backend.probes.readiness.httpGet.port }}
+            initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.readiness.failureThreshold }}
+            successThreshold: {{ .Values.backend.probes.readiness.successThreshold }}
+          {{- end }}
+          {{- if .Values.backend.probes.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.backend.probes.startup.httpGet.path }}
+              port: {{ .Values.backend.probes.startup.httpGet.port }}
+            initialDelaySeconds: {{ .Values.backend.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.startup.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          {{- if .Values.backend.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.backend.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.backend.sidecars }}
+        {{- toYaml .Values.backend.sidecars | nindent 8 }}
+        {{- end }}
+      {{- if .Values.backend.extraVolumes }}
+      volumes:
+        {{- toYaml .Values.backend.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- if .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.backend.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.backend.affinity }}
+      affinity:
+        {{- toYaml .Values.backend.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml .Values.backend.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.backend.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.backend.topologySpreadConstraints | nindent 8 }}
+      {{- end }}
+{{- end }}

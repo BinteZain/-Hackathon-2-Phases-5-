@@ -1,0 +1,502 @@
+# =============================================================================
+# Todo Chatbot - Production Helm Chart Values
+# =============================================================================
+
+# -- Global configuration applied across all components
+global:
+  # -- Kubernetes namespace for deployment
+  namespace: todo-app
+  # -- Container image registry (Docker Hub by default)
+  imageRegistry: ""
+  # -- Image pull secrets for private registries
+  imagePullSecrets: []
+  # -- Storage class for persistent volumes
+  storageClass: "standard"
+  # -- Additional labels for all resources
+  extraLabels: {}
+  # -- Deployment strategy (rolling, blue-green, canary)
+  deploymentStrategy: rolling
+  # -- Canary deployment percentage (0-100)
+  canaryPercentage: 10
+  # -- Blue-Green active environment (blue or green)
+  activeEnvironment: blue
+
+# -----------------------------------------------------------------------------
+# Namespace Configuration
+# -----------------------------------------------------------------------------
+namespace:
+  # -- Create namespace automatically
+  create: true
+  # -- Additional namespace labels
+  labels:
+    name: todo-app
+    environment: production
+
+# -----------------------------------------------------------------------------
+# Frontend Configuration (Next.js)
+# -----------------------------------------------------------------------------
+frontend:
+  # -- Enable frontend deployment
+  enabled: true
+  # -- Component name
+  name: frontend
+  
+  # Container image configuration
+  image:
+    # -- Image repository (will be prefixed with global.imageRegistry if set)
+    repository: phase3-frontend
+    # -- Image tag (defaults to chart appVersion)
+    tag: "latest"
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+  
+  # -- Number of replicas (ignored when autoscaling is enabled)
+  replicaCount: 2
+  
+  # Service configuration
+  service:
+    # -- Service type
+    type: ClusterIP
+    # -- Service port
+    port: 80
+    # -- Target port in container
+    targetPort: 3000
+    # -- Node port (for NodePort/LoadBalancer types)
+    nodePort: null
+    # -- Service annotations
+    annotations: {}
+  
+  # Resource requests and limits
+  resources:
+    requests:
+      # -- CPU request
+      cpu: 100m
+      # -- Memory request
+      memory: 128Mi
+    limits:
+      # -- CPU limit
+      cpu: 500m
+      # -- Memory limit
+      memory: 512Mi
+  
+  # Horizontal Pod Autoscaling
+  autoscaling:
+    # -- Enable autoscaling
+    enabled: true
+    # -- Minimum replicas
+    minReplicas: 2
+    # -- Maximum replicas
+    maxReplicas: 10
+    # -- Target CPU utilization percentage
+    targetCPUUtilizationPercentage: 70
+    # -- Target memory utilization percentage
+    targetMemoryUtilizationPercentage: 80
+  
+  # Health probes
+  probes:
+    # Liveness probe configuration
+    liveness:
+      # -- Liveness probe path
+      path: /
+      # -- Liveness probe port
+      port: 3000
+      # -- Initial delay seconds
+      initialDelaySeconds: 30
+      # -- Period seconds
+      periodSeconds: 10
+      # -- Timeout seconds
+      timeoutSeconds: 5
+      # -- Failure threshold
+      failureThreshold: 3
+      # -- Success threshold
+      successThreshold: 1
+    
+    # Readiness probe configuration
+    readiness:
+      # -- Readiness probe path
+      path: /
+      # -- Readiness probe port
+      port: 3000
+      # -- Initial delay seconds
+      initialDelaySeconds: 10
+      # -- Period seconds
+      periodSeconds: 5
+      # -- Timeout seconds
+      timeoutSeconds: 3
+      # -- Failure threshold
+      failureThreshold: 3
+      # -- Success threshold
+      successThreshold: 1
+  
+  # Environment variables
+  env:
+    # -- Node environment
+    NODE_ENV: production
+    # -- Backend API URL (will be templated)
+    NEXT_PUBLIC_API_URL: ""
+  
+  # Pod security context
+  podSecurityContext:
+    # -- Run as non-root user
+    runAsNonRoot: true
+    # -- User ID
+    runAsUser: 1001
+    # -- Group ID
+    runAsGroup: 1001
+    # -- FSGroup
+    fsGroup: 1001
+  
+  # Container security context
+  containerSecurityContext:
+    # -- Allow privilege escalation
+    allowPrivilegeEscalation: false
+    # -- Read-only root filesystem
+    readOnlyRootFilesystem: true
+    # -- Drop all capabilities
+    capabilities:
+      drop:
+        - ALL
+  
+  # -- Node selector for pod scheduling
+  nodeSelector: {}
+  # -- Tolerations for pod scheduling
+  tolerations: []
+  # -- Affinity rules for pod scheduling
+  affinity: {}
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Pod labels
+  podLabels: {}
+
+# -----------------------------------------------------------------------------
+# Backend Configuration (FastAPI/Express)
+# -----------------------------------------------------------------------------
+backend:
+  # -- Enable backend deployment
+  enabled: true
+  # -- Component name
+  name: backend
+  
+  # Container image configuration
+  image:
+    # -- Image repository
+    repository: phase3-backend
+    # -- Image tag
+    tag: "latest"
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+  
+  # -- Number of replicas
+  replicaCount: 2
+  
+  # Service configuration
+  service:
+    # -- Service type
+    type: ClusterIP
+    # -- Service port
+    port: 8080
+    # -- Target port in container
+    targetPort: 3001
+    # -- Node port
+    nodePort: null
+    # -- Service annotations
+    annotations: {}
+  
+  # Resource requests and limits
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  # Horizontal Pod Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+  
+  # Health probes
+  probes:
+    liveness:
+      path: /health
+      port: 3001
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    
+    readiness:
+      path: /health
+      port: 3001
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+  
+  # Environment variables
+  env:
+    NODE_ENV: production
+    PORT: "3001"
+    LOG_LEVEL: INFO
+  
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+  
+  # Container security context
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  podLabels: {}
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration
+# -----------------------------------------------------------------------------
+ingress:
+  # -- Enable ingress
+  enabled: true
+  # -- Ingress class name
+  className: nginx
+  # -- Ingress annotations
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  # -- Ingress hosts configuration
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service: backend
+            port: 8080
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service: frontend
+            port: 80
+  # -- TLS configuration
+  tls: []
+  # Example:
+  # - secretName: todo-app-tls
+  #   hosts:
+  #     - todo-app.local
+
+# -----------------------------------------------------------------------------
+# ConfigMap Configuration
+# -----------------------------------------------------------------------------
+configMap:
+  # -- Additional configmap data
+  data: {}
+  # Example:
+  #   FEATURE_FLAGS: "enabled"
+  #   LOG_FORMAT: "json"
+
+# -----------------------------------------------------------------------------
+# Secrets Configuration
+# -----------------------------------------------------------------------------
+secrets:
+  # -- Enable secret creation
+  enabled: true
+  # -- Secret name
+  name: todo-app-secrets
+  # -- Backend API key (for external services)
+  apiKey: ""
+  # -- JWT secret for authentication
+  jwtSecret: ""
+  # -- Database URL (if using external database)
+  databaseUrl: ""
+  # -- Custom secrets
+  custom: {}
+
+# -----------------------------------------------------------------------------
+# ServiceAccount Configuration
+# -----------------------------------------------------------------------------
+serviceAccount:
+  # -- Create service account
+  create: true
+  # -- Service account name
+  name: todo-app-sa
+  # -- Service account annotations
+  annotations: {}
+  # -- Automount service account token
+  automountServiceAccountToken: true
+
+# -----------------------------------------------------------------------------
+# RBAC Configuration
+# -----------------------------------------------------------------------------
+rbac:
+  # -- Create role and rolebinding
+  create: true
+  # -- Role rules
+  rules:
+    - apiGroups: [""]
+      resources: ["configmaps", "secrets"]
+      verbs: ["get", "list"]
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["get", "list", "watch"]
+
+# -----------------------------------------------------------------------------
+# NetworkPolicy Configuration
+# -----------------------------------------------------------------------------
+networkPolicy:
+  # -- Enable network policy
+  enabled: true
+  # -- Policy types
+  policyTypes:
+    - Ingress
+    - Egress
+  # -- Ingress rules
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 3001
+    - from:
+        - podSelector: {}
+  # -- Egress rules
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 3001
+
+# -----------------------------------------------------------------------------
+# PodDisruptionBudget Configuration
+# -----------------------------------------------------------------------------
+podDisruptionBudget:
+  # -- Enable PDB for frontend
+  frontend:
+    enabled: true
+    # -- Minimum available pods
+    minAvailable: 1
+    # -- OR maximum unavailable (comment minAvailable to use)
+    # maxUnavailable: 1
+  
+  # -- Enable PDB for backend
+  backend:
+    enabled: true
+    minAvailable: 1
+
+# -----------------------------------------------------------------------------
+# ResourceQuota Configuration
+# -----------------------------------------------------------------------------
+resourceQuota:
+  # -- Enable resource quota
+  enabled: true
+  # -- Hard limits
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    persistentvolumeclaims: "5"
+    pods: "20"
+    services: "10"
+    secrets: "10"
+    configmaps: "10"
+
+# -----------------------------------------------------------------------------
+# LimitRange Configuration
+# -----------------------------------------------------------------------------
+limitRange:
+  # -- Enable limit range
+  enabled: true
+  # -- Default limits
+  default:
+    cpu: 500m
+    memory: 512Mi
+  # -- Default requests
+  defaultRequest:
+    cpu: 100m
+    memory: 128Mi
+  # -- Max limits
+  max:
+    cpu: "2"
+    memory: 4Gi
+  # -- Min limits
+  min:
+    cpu: 50m
+    memory: 64Mi
+
+# -----------------------------------------------------------------------------
+# Monitoring Configuration (Prometheus + Grafana)
+# -----------------------------------------------------------------------------
+monitoring:
+  # -- Enable service monitors for Prometheus
+  enabled: true
+  # -- Prometheus scrape interval
+  scrapeInterval: 30s
+  # -- Additional labels for service monitors
+  additionalLabels: {}
+  # -- Prometheus namespace (if different)
+  namespace: monitoring
+  # Grafana configuration
+  grafana:
+    # -- Enable Grafana dashboard creation
+    enabled: true
+    # -- Dashboard namespace
+    namespace: monitoring
+    # -- Dashboard provider configmap name
+    providerConfigMap: grafana-dashboards
+  # Prometheus rules
+  prometheusRules:
+    # -- Enable alerting rules
+    enabled: true
+    # Alert thresholds
+    alerts:
+      podCrashLooping: true
+      highMemoryUsage: true
+      highCPUUsage: true
+      serviceDown: true
+
+# -----------------------------------------------------------------------------
+# Database Configuration (optional - for future PostgreSQL integration)
+# -----------------------------------------------------------------------------
+database:
+  # -- Use external database
+  external: true
+  # -- External database URL
+  url: ""
+  # -- Internal PostgreSQL chart (if external: false)
+  postgresql:
+    enabled: false
+    # postgresqlUsername: todoapp
+    # postgresqlPassword: ""
+    # postgresqlDatabase: todoapp

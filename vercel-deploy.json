@@ -1,0 +1,20 @@
+{
+  "name": "hackathon-todo-phase3",
+  "framework": "nextjs",
+  "rootDirectory": "frontend",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/.next",
+  "devCommand": "cd frontend && npm run dev",
+  "installCommand": "cd frontend && npm install",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/tasks",
+      "permanent": false
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://your-backend-url.herokuapp.com/api/v1",
+    "NEXT_PUBLIC_BETTER_AUTH_SECRET": "eLlMDErNeheyQrPK7EbORWfOKjnB6HoT"
+  }
+}

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: recurring-service
+description: Recurring Task Service for Phase V - Handles recurring task occurrence generation
+type: application
+version: 5.0.0
+appVersion: "5.0.0"
+keywords:
+  - recurring
+  - tasks
+  - dapr
+  - microservice
+home: https://github.com/your-org/todo-chatbot
+maintainers:
+  - name: Development Team
+    email: dev@todo-chatbot.com

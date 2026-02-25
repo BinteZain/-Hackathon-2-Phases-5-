@@ -1,0 +1,107 @@
+===============================================================================
+  Congratulations! Todo Chatbot has been deployed successfully!
+===============================================================================
+
+  Release Name: {{ .Release.Name }}
+  Namespace: {{ .Values.global.namespace }}
+  Chart Version: {{ .Chart.Version }}
+  App Version: {{ .Chart.AppVersion }}
+
+===============================================================================
+  Access Information
+===============================================================================
+
+  {{- if .Values.ingress.enabled }}
+  Ingress is enabled. Access your application at:
+  {{- range .Values.ingress.hosts }}
+    http://{{ .host }}
+  {{- end }}
+
+  {{- else }}
+  Ingress is NOT enabled. Use port-forwarding to access:
+
+  Frontend:
+    kubectl port-forward svc/{{ include "todo-app.frontend.fullname" . }} -n {{ .Values.global.namespace }} 3000:{{ .Values.frontend.service.port }}
+    Then visit: http://localhost:3000
+
+  Backend:
+    kubectl port-forward svc/{{ include "todo-app.backend.fullname" . }} -n {{ .Values.global.namespace }} 3001:{{ .Values.backend.service.port }}
+    Then visit: http://localhost:3001/health
+  {{- end }}
+
+===============================================================================
+  Deployment Status
+===============================================================================
+
+  Frontend: {{ if .Values.frontend.enabled }}✓ Enabled{{ else }}✗ Disabled{{ end }}
+  {{- if .Values.frontend.autoscaling.enabled }}
+    Autoscaling: Enabled ({{ .Values.frontend.autoscaling.minReplicas }}-{{ .Values.frontend.autoscaling.maxReplicas }} replicas)
+  {{- else }}
+    Replicas: {{ .Values.frontend.replicaCount }}
+  {{- end }}
+
+  Backend: {{ if .Values.backend.enabled }}✓ Enabled{{ else }}✗ Disabled{{ end }}
+  {{- if .Values.backend.autoscaling.enabled }}
+    Autoscaling: Enabled ({{ .Values.backend.autoscaling.minReplicas }}-{{ .Values.backend.autoscaling.maxReplicas }} replicas)
+  {{- else }}
+    Replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+
+===============================================================================
+  Useful Commands
+===============================================================================
+
+  Check deployment status:
+    kubectl get deployments -n {{ .Values.global.namespace }}
+
+  Check pods:
+    kubectl get pods -n {{ .Values.global.namespace }}
+
+  Check services:
+    kubectl get svc -n {{ .Values.global.namespace }}
+
+  Check ingress:
+    kubectl get ingress -n {{ .Values.global.namespace }}
+
+  View frontend logs:
+    kubectl logs -n {{ .Values.global.namespace }} -l app.kubernetes.io/component=frontend -f
+
+  View backend logs:
+    kubectl logs -n {{ .Values.global.namespace }} -l app.kubernetes.io/component=backend -f
+
+  Scale frontend manually:
+    kubectl scale deployment {{ include "todo-app.frontend.fullname" . }} -n {{ .Values.global.namespace }} --replicas=5
+
+  Upgrade release:
+    helm upgrade {{ .Release.Name }} . -n {{ .Values.global.namespace }}
+
+  Uninstall:
+    helm uninstall {{ .Release.Name }} -n {{ .Values.global.namespace }}
+
+===============================================================================
+  Troubleshooting
+===============================================================================
+
+  If pods are not starting:
+    kubectl describe pod -n {{ .Values.global.namespace }} -l app.kubernetes.io/name={{ include "todo-app.name" . }}
+
+  Check events:
+    kubectl get events -n {{ .Values.global.namespace }} --sort-by='.lastTimestamp'
+
+  Check HPA status:
+    kubectl get hpa -n {{ .Values.global.namespace }}
+
+  Check resource quota:
+    kubectl describe resourcequota -n {{ .Values.global.namespace }}
+
+===============================================================================
+  Next Steps
+===============================================================================
+
+  1. Configure your DNS to point to the ingress controller
+  2. Enable TLS by adding certificates to values.yaml
+  3. Set up monitoring with Prometheus/Grafana
+  4. Configure backup for persistent data
+  5. Review and adjust resource limits based on usage
+
+===============================================================================

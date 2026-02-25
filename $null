@@ -1,0 +1,2 @@
+error: unknown flag: --from-literal
+See 'kubectl delete --help' for usage.

@@ -1,0 +1,151 @@
+# ===========================
+# DEPENDENCIES
+# ===========================
+node_modules/
+.pnp
+.pnp.js
+vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+
+# ===========================
+# IDE & EDITORS
+# ===========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ===========================
+# NEXT.JS & FRONTEND
+# ===========================
+.next/
+out/
+build/
+dist/
+
+# ===========================
+# ENVIRONMENT VARIABLES
+# ===========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example.local
+.evn.local
+*.env
+
+# ===========================
+# DATABASE
+# ===========================
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+
+# ===========================
+# BUILD ARTIFACTS
+# ===========================
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===========================
+# OS FILES
+# ===========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===========================
+# TESTING
+# ===========================
+coverage/
+.nyc_output/
+*.lcov
+
+# ===========================
+# MISC & SECURITY
+# ===========================
+*.pem
+*.key
+*.cert
+*.crt
+
+# ===========================
+# VERCEL
+# ===========================
+.vercel/
+
+# ===========================
+# DOCKER
+# ===========================
+*.pid
+*.seed
+*.pid.lock
+
+# ===========================
+# TEMPORARY FILES
+# ===========================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# ===========================
+# EXECUTABLES & ARCHIVES
+# ===========================
+*.exe
+*.dll
+*.so
+*.dylib
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+
+# ===========================
+# KUBERNETES & HELM
+# ===========================
+*.tgz
+helm/*.tgz
+*-chart-*.tgz
+
+# ===========================
+# AI TOOLS
+# ===========================
+kubectl-ai.exe
+kubectl-ai_Windows_x86_64.zip
+kubectl-ai-temp/
+
+# ===========================
+# LOGS
+# ===========================
+logs/
+*.log

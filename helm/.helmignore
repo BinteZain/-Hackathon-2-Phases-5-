@@ -1,0 +1,23 @@
+# Patterns to ignore when building packages.
+.DS_Store
+.git/
+.gitignore
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.project
+.idea/
+.vscode/
+*.md
+LICENSE
+*.log
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.next/
+build/
+dist/

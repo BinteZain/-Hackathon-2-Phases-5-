@@ -1,0 +1,145 @@
+# =============================================================================
+# Todo Chatbot - Production Values Override
+# =============================================================================
+# Use with: helm install todo-app . -f values-production.yaml
+# Hardened configuration for production environments
+
+# Global settings
+global:
+  namespace: todo-app
+  storageClass: "gp3"  # AWS EBS or equivalent
+  imageRegistry: "ghcr.io/your-org"  # Private registry
+  imagePullSecrets:
+    - name: registry-credentials
+
+# Production-ready frontend configuration
+frontend:
+  replicaCount: 3
+  image:
+    tag: "v1.0.0"  # Pin to specific version
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+  podDisruptionBudget:
+    minAvailable: 2
+  # Pod anti-affinity for high availability
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: frontend
+            topologyKey: kubernetes.io/hostname
+
+backend:
+  replicaCount: 3
+  image:
+    tag: "v1.0.0"
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 300m
+      memory: 384Mi
+    limits:
+      cpu: 1500m
+      memory: 1.5Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 25
+    targetCPUUtilizationPercentage: 55
+    targetMemoryUtilizationPercentage: 65
+  podDisruptionBudget:
+    minAvailable: 2
+  # Pod anti-affinity for high availability
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: backend
+            topologyKey: kubernetes.io/hostname
+
+# Production ingress with TLS
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: todo-app.example.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service: backend
+            port: 8080
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service: frontend
+            port: 80
+  tls:
+    - secretName: todo-app-tls
+      hosts:
+        - todo-app.example.com
+
+# Strict resource quotas for production
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    persistentvolumeclaims: "10"
+    pods: "30"
+    services: "15"
+    secrets: "20"
+    configmaps: "20"
+
+# Strict limit ranges
+limitRange:
+  enabled: true
+  default:
+    cpu: 500m
+    memory: 512Mi
+  defaultRequest:
+    cpu: 150m
+    memory: 192Mi
+  max:
+    cpu: "4"
+    memory: 8Gi
+  min:
+    cpu: 50m
+    memory: 64Mi
+
+# Enhanced security
+secrets:
+  enabled: true
+  # Generate these externally with sealed-secrets or external-secrets
+  jwtSecret: ""  # Set via external secrets manager
+
+# Monitoring enabled
+monitoring:
+  enabled: true
+  scrapeInterval: 15s

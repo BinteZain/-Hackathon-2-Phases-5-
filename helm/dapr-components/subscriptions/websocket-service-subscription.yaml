@@ -1,0 +1,27 @@
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: websocket-service-realtime
+  namespace: default
+spec:
+  topic: task-updates
+  route: /dapr/subscribe/realtime
+  pubsubname: pubsub-kafka
+  metadata:
+    rawPayload: "true"
+scopes:
+- websocket-service
+---
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: websocket-service-reminders
+  namespace: default
+spec:
+  topic: reminders
+  route: /dapr/subscribe/realtime
+  pubsubname: pubsub-kafka
+  metadata:
+    rawPayload: "true"
+scopes:
+- websocket-service

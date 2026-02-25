@@ -1,0 +1,61 @@
+{{- if and .Values.backend.enabled .Values.backend.autoscaling.enabled }}
+apiVersion: {{ include "todo-app.hpa.apiVersion" . }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "todo-app.backend.fullname" . }}-hpa
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "todo-app.backend.fullname" . }}
+  minReplicas: {{ .Values.backend.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.backend.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.backend.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        {{- if eq (include "todo-app.hpa.apiVersion" .) "autoscaling/v2" }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.backend.autoscaling.targetCPUUtilizationPercentage }}
+        {{- else }}
+        targetAverageUtilization: {{ .Values.backend.autoscaling.targetCPUUtilizationPercentage }}
+        {{- end }}
+    {{- end }}
+    {{- if .Values.backend.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        {{- if eq (include "todo-app.hpa.apiVersion" .) "autoscaling/v2" }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.backend.autoscaling.targetMemoryUtilizationPercentage }}
+        {{- else }}
+        targetAverageUtilization: {{ .Values.backend.autoscaling.targetMemoryUtilizationPercentage }}
+        {{- end }}
+    {{- end }}
+  {{- if eq (include "todo-app.hpa.apiVersion" .) "autoscaling/v2" }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+  {{- end }}
+{{- end }}

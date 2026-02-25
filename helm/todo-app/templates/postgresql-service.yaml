@@ -1,0 +1,31 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "todo-app.postgresql.fullname" . }}
+  namespace: {{ include "todo-app.namespace" . }}
+  labels:
+    {{- include "todo-app.postgresql.labels" . | nindent 4 }}
+  {{- if .Values.postgresql.service.annotations }}
+  annotations:
+    {{- toYaml .Values.postgresql.service.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.postgresql.service.type }}
+  {{- if .Values.postgresql.service.nodePort }}
+  ports:
+    - port: {{ .Values.postgresql.service.port }}
+      targetPort: {{ .Values.postgresql.service.targetPort }}
+      protocol: TCP
+      name: postgres
+      nodePort: {{ .Values.postgresql.service.nodePort }}
+  {{- else }}
+  ports:
+    - port: {{ .Values.postgresql.service.port }}
+      targetPort: {{ .Values.postgresql.service.targetPort }}
+      protocol: TCP
+      name: postgres
+  {{- end }}
+  selector:
+    {{- include "todo-app.postgresql.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: phase3
+  labels:
+    name: phase3
+    app.kubernetes.io/name: phase3-todo-chatbot

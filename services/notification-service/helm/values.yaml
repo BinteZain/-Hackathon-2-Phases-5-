@@ -1,0 +1,214 @@
+# Default values for notification-service
+# This is a YAML-formatted file
+
+# Service name
+nameOverride: ""
+fullnameOverride: "notification-service"
+
+# Replica count
+replicaCount: 2
+
+# Docker image configuration
+image:
+  repository: ghcr.io/todo-chatbot/notification-service
+  pullPolicy: Always
+  tag: "latest"
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  dapr.io/enabled: "true"
+  dapr.io/app-id: "notification-service"
+  dapr.io/app-port: "8082"
+  dapr.io/app-protocol: "http"
+  dapr.io/config: "dapr-config"
+  dapr.io/enable-api-logging: "true"
+  dapr.io/log-level: "info"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8082
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: notification-service.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Environment variables
+env:
+  SERVICE_NAME: "notification-service"
+  APP_PORT: 8082
+  DEBUG: false
+  LOG_LEVEL: "INFO"
+  DATABASE_HOST: "postgresql.postgres.svc.cluster.local"
+  DATABASE_PORT: 5432
+  DATABASE_NAME: "todo_chatbot"
+  DATABASE_USER: "postgres"
+  DAPR_HTTP_PORT: 3500
+  DAPR_PUBSUB_NAME: "pubsub-kafka"
+  DAPR_STATE_STORE_NAME: "state-redis"
+  KAFKA_TOPIC_REMINDERS: "reminders"
+  KAFKA_TOPIC_TASK_EVENTS: "task-events"
+  SMTP_HOST: "smtp.mailtrap.io"
+  SMTP_PORT: 587
+  SMTP_FROM_EMAIL: "noreply@todo-chatbot.com"
+  SMTP_FROM_NAME: "Todo Chatbot"
+  SMTP_USE_TLS: "true"
+  MAX_RETRIES: "3"
+  RETRY_DELAY_SECONDS: "5"
+  BATCH_SIZE: "100"
+
+# Secret references
+secrets:
+  databasePassword:
+    secretName: "db-credentials"
+    secretKey: "password"
+  redisPassword:
+    secretName: "redis-secret"
+    secretKey: "password"
+  smtpPassword:
+    secretName: "email-smtp"
+    secretKey: "password"
+  firebaseApiKey:
+    secretName: "push-notification"
+    secretKey: "firebaseApiKey"
+
+# Health check configuration
+healthCheck:
+  liveness:
+    path: /live
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  startup:
+    path: /health
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+# Database configuration
+database:
+  enabled: true
+  host: "postgresql.postgres.svc.cluster.local"
+  port: 5432
+  name: "todo_chatbot"
+  user: "postgres"
+  passwordSecret: "db-credentials"
+  passwordKey: "password"
+
+# Dapr configuration
+dapr:
+  enabled: true
+  sidecarImage: ""
+  config: "dapr-config"
+  pubsub: "pubsub-kafka"
+  stateStore: "state-redis"
+  secretStore: "secret-kubernetes"
+  logLevel: "info"
+  enableAPILogging: true
+
+# Email configuration
+email:
+  smtpHost: "smtp.mailtrap.io"
+  smtpPort: 587
+  fromEmail: "noreply@todo-chatbot.com"
+  fromName: "Todo Chatbot"
+  useTls: true
+  secretName: "email-smtp"
+
+# Push notification configuration
+push:
+  firebaseEnabled: false
+  apnsEnabled: false
+  secretName: "push-notification"
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+    alerts:
+      highErrorRate:
+        enabled: true
+        threshold: 0.05
+        duration: 5m
+      highLatency:
+        enabled: true
+        threshold: 1000
+        duration: 5m
+      deliveryRateLow:
+        enabled: true
+        threshold: 90
+        duration: 10m
+
+# Logging configuration
+logging:
+  level: INFO
+  format: "json"
+  structured: true

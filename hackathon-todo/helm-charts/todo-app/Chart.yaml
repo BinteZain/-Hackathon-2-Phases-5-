@@ -1,0 +1,20 @@
+apiVersion: v2
+name: todo-app
+description: A production-ready Helm chart for Todo Chatbot application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - todo
+  - chatbot
+  - nextjs
+  - fastapi
+  - kubernetes
+  - cloud-native
+maintainers:
+  - name: Hackathon Team
+    email: team@hackathon.local
+sources:
+  - https://github.com/hackathon/todo-chatbot
+home: https://github.com/hackathon/todo-chatbot
+icon: https://img.icons8.com/color/96/todo-list.png

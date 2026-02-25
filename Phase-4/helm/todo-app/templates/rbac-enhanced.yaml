@@ -1,0 +1,112 @@
+{{- if .Values.rbac.create -}}
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "todo-app.serviceAccountName" . }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+---
+# Role with enhanced permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "todo-app.fullname" . }}-role
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+rules:
+  # Pod management
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  # ConfigMap access
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Secret access (limited)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  # Service access
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+  # Endpoint access
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list"]
+  # Event access
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list"]
+  # Deployment status (for self-monitoring)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list"]
+  # HorizontalPodAutoscaler status
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list"]
+---
+# Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "todo-app.fullname" . }}-rolebinding
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "todo-app.fullname" . }}-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "todo-app.serviceAccountName" . }}
+    namespace: {{ .Values.global.namespace }}
+---
+# ClusterRole for cross-namespace monitoring (optional)
+{{- if .Values.rbac.clusterWide }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "todo-app.fullname" . }}-cluster-role
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+rules:
+  # Node metrics (read-only)
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  # Namespace info
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  # PersistentVolumeClaims
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "todo-app.fullname" . }}-cluster-rolebinding
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "todo-app.fullname" . }}-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "todo-app.serviceAccountName" . }}
+    namespace: {{ .Values.global.namespace }}
+{{- end }}
+{{- end }}

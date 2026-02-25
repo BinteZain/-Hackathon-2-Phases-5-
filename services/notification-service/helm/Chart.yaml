@@ -1,0 +1,16 @@
+apiVersion: v2
+name: notification-service
+description: Notification Service for Phase V - Multi-channel notification delivery
+type: application
+version: 5.0.0
+appVersion: "5.0.0"
+keywords:
+  - notifications
+  - email
+  - push
+  - dapr
+  - microservice
+home: https://github.com/your-org/todo-chatbot
+maintainers:
+  - name: Development Team
+    email: dev@todo-chatbot.com

@@ -1,0 +1,130 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "todo-app.postgresql.fullname" . }}
+  namespace: {{ include "todo-app.namespace" . }}
+  labels:
+    {{- include "todo-app.postgresql.labels" . | nindent 4 }}
+  {{- if .Values.postgresql.deploymentAnnotations }}
+  annotations:
+    {{- toYaml .Values.postgresql.deploymentAnnotations | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "todo-app.postgresql.fullname" . }}
+  replicas: {{ .Values.postgresql.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.postgresql.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "todo-app.postgresql.selectorLabels" . | nindent 8 }}
+        {{- if .Values.postgresql.podLabels }}
+        {{- toYaml .Values.postgresql.podLabels | nindent 8 }}
+        {{- end }}
+      {{- if .Values.postgresql.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.postgresql.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "todo-app.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "todo-app.postgresql.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
+      {{- if .Values.postgresql.initContainers }}
+      initContainers:
+        {{- toYaml .Values.postgresql.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: postgresql
+          securityContext:
+            {{- toYaml .Values.postgresql.containerSecurityContext | nindent 12 }}
+          image: "{{ include "todo-app.imageRepository" (dict "image" .Values.postgresql.image "context" $) }}:{{ .Values.postgresql.image.tag }}"
+          imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.postgresql.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.postgresql.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.passwordSecret.secretName }}
+                  key: {{ .Values.postgresql.passwordSecret.secretKey }}
+          {{- if .Values.postgresql.probes.liveness.enabled }}
+          livenessProbe:
+            exec:
+              command:
+                {{- toYaml .Values.postgresql.probes.liveness.exec.command | nindent 16 }}
+            initialDelaySeconds: {{ .Values.postgresql.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgresql.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgresql.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.postgresql.probes.liveness.failureThreshold }}
+            successThreshold: {{ .Values.postgresql.probes.liveness.successThreshold }}
+          {{- end }}
+          {{- if .Values.postgresql.probes.readiness.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                {{- toYaml .Values.postgresql.probes.readiness.exec.command | nindent 16 }}
+            initialDelaySeconds: {{ .Values.postgresql.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgresql.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgresql.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.postgresql.probes.readiness.failureThreshold }}
+            successThreshold: {{ .Values.postgresql.probes.readiness.successThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          {{- if .Values.postgresql.extraVolumeMounts }}
+            {{- toYaml .Values.postgresql.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.postgresql.sidecars }}
+        {{- toYaml .Values.postgresql.sidecars | nindent 8 }}
+        {{- end }}
+      {{- if .Values.postgresql.extraVolumes }}
+      volumes:
+        {{- toYaml .Values.postgresql.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- if .Values.postgresql.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.postgresql.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.postgresql.affinity }}
+      affinity:
+        {{- toYaml .Values.postgresql.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.postgresql.tolerations }}
+      tolerations:
+        {{- toYaml .Values.postgresql.tolerations | nindent 8 }}
+      {{- end }}
+  {{- if .Values.postgresql.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        {{- if .Values.postgresql.persistence.annotations }}
+        annotations:
+          {{- toYaml .Values.postgresql.persistence.annotations | nindent 10 }}
+        {{- end }}
+        {{- if .Values.postgresql.persistence.labels }}
+        labels:
+          {{- toYaml .Values.postgresql.persistence.labels | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.postgresql.persistence.accessModes | nindent 10 }}
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.persistence.size }}
+        {{- if .Values.postgresql.persistence.storageClass }}
+        storageClassName: {{ .Values.postgresql.persistence.storageClass }}
+        {{- end }}
+  {{- end }}
+{{- end }}

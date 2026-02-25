@@ -1,0 +1,206 @@
+# =============================================================================
+# Phase 3 Todo Chatbot - Helm Chart Values
+# =============================================================================
+
+# Global configuration
+global:
+  namespace: phase3
+  imageRegistry: ""
+
+# -----------------------------------------------------------------------------
+# Frontend Configuration (Next.js)
+# -----------------------------------------------------------------------------
+frontend:
+  enabled: true
+  name: frontend
+  image:
+    repository: phase3-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  # Replica count for scaling
+  replicaCount: 2
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  
+  # Resource limits and requests
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  # Environment variables
+  env:
+    NODE_ENV: production
+  
+  # Health check probes
+  probes:
+    liveness:
+      path: /
+      port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      path: /
+      port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# -----------------------------------------------------------------------------
+# Backend Configuration (FastAPI)
+# -----------------------------------------------------------------------------
+backend:
+  enabled: true
+  name: backend
+  image:
+    repository: phase3-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  # Replica count for scaling
+  replicaCount: 2
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 4000
+  
+  # Resource limits and requests
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  # Environment variables
+  env:
+    PYTHON_ENV: production
+    LOG_LEVEL: INFO
+  
+  # Health check probes
+  probes:
+    liveness:
+      path: /health
+      port: 4000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      path: /health
+      port: 4000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Configuration
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  name: postgres
+  image:
+    repository: postgres
+    tag: 15-alpine
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  
+  env:
+    POSTGRES_DB: todoapp
+    POSTGRES_USER: phase3user
+    POSTGRES_PASSWORD: phase3password123
+    PGDATA: /var/lib/postgresql/data/pgdata
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: backend
+              port: 8080
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: frontend
+              port: 80
+  
+  tls: []
+
+# -----------------------------------------------------------------------------
+# Secrets Configuration
+# -----------------------------------------------------------------------------
+secrets:
+  enabled: true
+  name: phase3-secrets
+  betterAuthSecret: "minikube_dev_secret_key_change_in_production"
+  openaiApiKey: ""

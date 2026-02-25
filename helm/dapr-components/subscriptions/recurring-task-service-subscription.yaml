@@ -1,0 +1,13 @@
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: recurring-task-service-task-events
+  namespace: default
+spec:
+  topic: task-events
+  route: /dapr/subscribe/task-events
+  pubsubname: pubsub-kafka
+  metadata:
+    rawPayload: "true"
+scopes:
+- recurring-task-service

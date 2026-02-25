@@ -1,0 +1,214 @@
+# Default values for phase3-todo-chatbot
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  namespace: phase3
+  imageRegistry: ""
+  storageClass: "standard"
+
+# Frontend configuration
+frontend:
+  enabled: true
+  name: frontend
+  image:
+    repository: phase3-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  probes:
+    liveness:
+      path: /
+      port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      path: /
+      port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+  env:
+    NODE_ENV: production
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# Backend configuration
+backend:
+  enabled: true
+  name: backend
+  image:
+    repository: phase3-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 4000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+  probes:
+    liveness:
+      path: /health
+      port: 4000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      path: /health
+      port: 4000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+  env:
+    PYTHON_ENV: production
+    LOG_LEVEL: INFO
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  name: postgres
+  image:
+    repository: postgres
+    tag: 15-alpine
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  env:
+    POSTGRES_DB: todoapp
+    PGDATA: /var/lib/postgresql/data/pgdata
+  probes:
+    liveness:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    readiness:
+      initialDelaySeconds: 30
+      periodSeconds: 5
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: backend
+              port: 8080
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: frontend
+              port: 80
+  tls: []
+
+# Secrets configuration
+secrets:
+  enabled: true
+  name: phase3-secrets
+  # These will be overridden by actual values during installation
+  postgresUser: "phase3user"
+  postgresPassword: ""  # Generate or provide
+  postgresDB: "todoapp"
+  betterAuthSecret: ""  # Generate or provide
+  openaiApiKey: ""
+
+# Network Policy configuration
+networkPolicy:
+  enabled: true
+  name: phase3-network-policy
+
+# RBAC configuration
+rbac:
+  enabled: true
+  serviceAccount:
+    create: true
+    name: phase3-sa
+
+# Pod Disruption Budget configuration
+podDisruptionBudget:
+  frontend:
+    enabled: true
+    minAvailable: 1
+  backend:
+    enabled: true
+    minAvailable: 1

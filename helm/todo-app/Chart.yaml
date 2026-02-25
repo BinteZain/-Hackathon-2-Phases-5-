@@ -1,0 +1,18 @@
+apiVersion: v2
+name: todo-app
+description: Production-ready Helm chart for Todo Application (Frontend + Backend + PostgreSQL)
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords:
+  - todo
+  - nextjs
+  - fastapi
+  - postgresql
+  - production
+maintainers:
+  - name: Muhammad Afnan
+    email: afnan@example.com
+sources:
+  - https://github.com/BinteZain/-Hackathon_2_Phase_3-
+home: https://github.com/BinteZain/-Hackathon_2_Phase_3-

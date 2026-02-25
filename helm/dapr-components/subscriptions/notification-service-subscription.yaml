@@ -1,0 +1,27 @@
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: notification-service-reminders
+  namespace: default
+spec:
+  topic: reminders
+  route: /dapr/subscribe/reminders
+  pubsubname: pubsub-kafka
+  metadata:
+    rawPayload: "true"
+scopes:
+- notification-service
+---
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: notification-service-task-events
+  namespace: default
+spec:
+  topic: task-events
+  route: /dapr/subscribe/task-events
+  pubsubname: pubsub-kafka
+  metadata:
+    rawPayload: "true"
+scopes:
+- notification-service

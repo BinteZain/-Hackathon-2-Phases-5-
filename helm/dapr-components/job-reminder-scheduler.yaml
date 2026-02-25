@@ -1,0 +1,15 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: job-reminder-scheduler
+  namespace: default
+spec:
+  type: jobs.kafka
+  version: v1
+  metadata:
+  - name: kafkaBroker
+    value: "kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  - name: topic
+    value: "reminders"
+  - name: consumerGroup
+    value: "reminder-jobs-consumer-group"

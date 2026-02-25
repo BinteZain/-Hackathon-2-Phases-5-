@@ -1,0 +1,260 @@
+# Loki Stack Values
+# File: monitoring/loki-values.yaml
+
+loki:
+  enabled: true
+  isDefault: true
+  
+  # Persistence
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: default
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 3100
+  
+  # Loki configuration
+  config:
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      max_cache_freshness_per_query: 10m
+      split_queries_by_interval: 15m
+      ingestion_rate_mb: 16
+      ingestion_burst_size_mb: 24
+    
+    query_range:
+      align_queries_with_step: true
+      max_retries: 5
+      cache_results: true
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100
+    
+    ruler:
+      alertmanager_url: http://monitoring-alertmanager:9093
+      storage:
+        type: local
+        local:
+          directory: /rules
+      rule_path: /rules/fake
+    
+    chunk_store_config:
+      max_look_back_period: 0s
+      chunk_cache_config:
+        embedded_cache:
+          enabled: true
+          max_size_mb: 100
+    
+    table_manager:
+      retention_deletes_enabled: false
+      retention_period: 0s
+    
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/boltdb-shipper-active
+        cache_location: /loki/boltdb-shipper-cache
+        cache_ttl: 24h
+        shared_store: filesystem
+      filesystem:
+        directory: /loki/chunks
+    
+    compactor:
+      working_directory: /loki/boltdb-shipper-compactor
+      shared_store: filesystem
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+    
+    query_scheduler:
+      max_outstanding_requests_per_tenant: 32768
+    
+    frontend:
+      compress_responses: true
+      log_queries_longer_than: 5s
+    
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+      http_server_read_timeout: 600s
+      http_server_write_timeout: 600s
+  
+  # Pod annotations
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3100"
+
+promtail:
+  enabled: true
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  
+  # Configuration
+  config:
+    lokiAddress: http://loki:3100/loki/api/v1/push
+    
+    snippets:
+      pipelineStages:
+        - cri: {}
+        - multiline:
+            firstline: ^\d{4}-\d{2}-\d{2}
+            max_wait_time: 3s
+        - json:
+            expressions:
+              level: level
+              message: message
+              service: service
+              trace_id: traceId
+              span_id: spanId
+        
+        - labels:
+            level:
+            service:
+        
+        - timestamp:
+            format: RFC3339
+            source: time
+      
+      scrapeConfigs: |
+        # Kubernetes pods with annotations
+        - job_name: kubernetes-pods
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels:
+                - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+              action: keep
+              regex: true
+            - source_labels:
+                - __meta_kubernetes_pod_annotation_prometheus_io_path
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels:
+                - __address__
+                - __meta_kubernetes_pod_annotation_prometheus_io_port
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              target_label: __address__
+            - action: labelmap
+              regex: __meta_kubernetes_pod_label_(.+)
+            - source_labels:
+                - __meta_kubernetes_namespace
+              action: replace
+              target_label: kubernetes_namespace
+            - source_labels:
+                - __meta_kubernetes_pod_name
+              action: replace
+              target_label: kubernetes_pod_name
+            - source_labels:
+                - __meta_kubernetes_pod_label_app
+              action: replace
+              target_label: app
+            - source_labels:
+                - __meta_kubernetes_pod_label_release
+              action: replace
+              target_label: release
+        
+        # Kubernetes pods logs (all pods)
+        - job_name: kubernetes-pods-log
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels:
+                - __meta_kubernetes_namespace
+              action: replace
+              target_label: namespace
+            - source_labels:
+                - __meta_kubernetes_pod_name
+              action: replace
+              target_label: pod
+            - source_labels:
+                - __meta_kubernetes_pod_label_app
+              action: replace
+              target_label: app
+            - source_labels:
+                - __meta_kubernetes_pod_container_name
+              action: replace
+              target_label: container
+            - source_labels:
+                - __meta_kubernetes_pod_label_release
+              action: replace
+              target_label: release
+            - action: labelmap
+              regex: __meta_kubernetes_pod_label_(.+)
+        
+        # Kubernetes system logs
+        - job_name: kubernetes-system
+          kubernetes_sd_configs:
+            - role: node
+          relabel_configs:
+            - action: labelmap
+              regex: __meta_kubernetes_node_label_(.+)
+            - source_labels:
+                - __meta_kubernetes_node_name
+              action: replace
+              target_label: node
+        
+        # Application specific logs (default namespace)
+        - job_name: application-logs
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels:
+                - __meta_kubernetes_namespace
+              action: keep
+              regex: default
+            - source_labels:
+                - __meta_kubernetes_pod_label_app
+              action: replace
+              target_label: app
+            - source_labels:
+                - __meta_kubernetes_pod_name
+              action: replace
+              target_label: pod
+            - source_labels:
+                - __meta_kubernetes_namespace
+              action: replace
+              target_label: namespace
+
+# Grafana Loki datasource
+grafana:
+  enabled: true
+  loki:
+    enabled: true
+    url: http://loki:3100
+    maxLines: 5000

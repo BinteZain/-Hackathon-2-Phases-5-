@@ -1,0 +1,30 @@
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: dapr-config
+  namespace: default
+spec:
+  httpPipeline:
+    handlers: []
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: "http://zipkin.observability.svc.cluster.local:9411/api/v2/spans"
+  resiliency:
+    policies:
+      timeout:
+        default:
+          duration: 5s
+      retry:
+        default:
+          policy: constant
+          duration: 1s
+          maxRetries: 3
+      circuitBreaker:
+        default:
+          maxRequests: 1
+          timeout: 5s
+          trip: consecutiveFailures >= 5
+  accessControl:
+    defaultAction: allow
+    trustDomain: "public"

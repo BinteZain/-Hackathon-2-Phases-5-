@@ -1,0 +1,18 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "phase3.fullname" . }}-postgresql
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "phase3.postgresql.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.postgresql.service.type }}
+  ports:
+    - port: {{ .Values.postgresql.service.port }}
+      targetPort: {{ .Values.postgresql.service.targetPort }}
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "phase3.postgresql.selectorLabels" . | nindent 4 }}
+{{- end }}

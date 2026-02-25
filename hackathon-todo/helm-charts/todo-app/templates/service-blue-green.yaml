@@ -1,0 +1,73 @@
+{{- if and .Values.frontend.enabled (eq .Values.global.deploymentStrategy "blue-green") -}}
+# Service for Blue Environment
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "todo-app.frontend.fullname" . }}-blue
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    environment: blue
+spec:
+  type: {{ .Values.frontend.service.type }}
+  ports:
+    - port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "todo-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    environment: blue
+---
+# Service for Green Environment
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "todo-app.frontend.fullname" . }}-green
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    environment: green
+spec:
+  type: {{ .Values.frontend.service.type }}
+  ports:
+    - port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "todo-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    environment: green
+---
+# Active Service (points to either blue or green based on .Values.global.activeEnvironment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "todo-app.frontend.fullname" . }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    active-environment: {{ .Values.global.activeEnvironment }}
+  annotations:
+    description: "Points to blue or green environment based on activeEnvironment value"
+spec:
+  type: {{ .Values.frontend.service.type }}
+  ports:
+    - port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "todo-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+    {{- if eq .Values.global.activeEnvironment "blue" }}
+    environment: blue
+    {{- else }}
+    environment: green
+    {{- end }}
+{{- end }}

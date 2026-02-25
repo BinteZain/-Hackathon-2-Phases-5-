@@ -1,0 +1,109 @@
+# =============================================================================
+# Todo Chatbot - Minikube Values Override
+# =============================================================================
+# Use with: helm install todo-app . -f values-minikube.yaml
+# Optimized for local Minikube development
+
+# Global settings
+global:
+  namespace: todo-app
+  storageClass: "standard"
+  # Use rolling deployment for simplicity
+  deploymentStrategy: rolling
+
+# Reduced resource requirements for local development
+frontend:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 85
+
+backend:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+
+# Relaxed probes for local development
+frontend:
+  probes:
+    liveness:
+      initialDelaySeconds: 20
+      periodSeconds: 15
+    readiness:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+
+backend:
+  probes:
+    liveness:
+      initialDelaySeconds: 20
+      periodSeconds: 15
+    readiness:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+
+# Relaxed resource quotas for Minikube
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "10"
+
+# Relaxed limit ranges
+limitRange:
+  enabled: true
+  default:
+    cpu: 250m
+    memory: 256Mi
+  defaultRequest:
+    cpu: 50m
+    memory: 64Mi
+  max:
+    cpu: "1"
+    memory: 2Gi
+  min:
+    cpu: 25m
+    memory: 32Mi
+
+# Simplified RBAC for Minikube
+rbac:
+  create: true
+  clusterWide: false
+
+# Basic network policies
+networkPolicy:
+  enabled: true
+
+# Monitoring (optional - enable if Prometheus/Grafana installed)
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+  prometheusRules:
+    enabled: false
+  grafana:
+    enabled: false

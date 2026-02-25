@@ -1,0 +1,14 @@
+{{- if and .Values.frontend.enabled .Values.podDisruptionBudget.frontend.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "phase3.fullname" . }}-frontend-pdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "phase3.frontend.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.frontend.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "phase3.frontend.selectorLabels" . | nindent 6 }}
+{{- end }}

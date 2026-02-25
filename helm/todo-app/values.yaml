@@ -1,0 +1,608 @@
+# =============================================================================
+# Todo App - Production Helm Chart Values
+# =============================================================================
+# Complete configuration for Frontend + Backend + PostgreSQL with HPA,
+# resource limits, probes, and ingress
+# =============================================================================
+
+# Global configuration applied to all resources
+global:
+  # Kubernetes namespace (will be created if createNamespace is true)
+  namespace: todo-app
+  # Create namespace automatically
+  createNamespace: true
+  # Image registry (docker.io, ghcr.io, etc.)
+  imageRegistry: ""
+  # Image pull secrets (for private registries)
+  imagePullSecrets: []
+  # Common labels applied to all resources
+  commonLabels:
+    app.kubernetes.io/part-of: todo-app
+    app.kubernetes.io/managed-by: helm
+
+# -----------------------------------------------------------------------------
+# Frontend Configuration (Next.js)
+# -----------------------------------------------------------------------------
+frontend:
+  enabled: true
+  name: frontend
+  
+  # Container image configuration
+  image:
+    repository: todo-frontend
+    tag: v1
+    pullPolicy: IfNotPresent
+  
+  # Number of replicas (HPA will manage this if enabled)
+  replicaCount: 2
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+    nodePort: null
+    annotations: {}
+  
+  # Resource limits and requests
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  # Environment variables
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+  
+  # Environment variables from ConfigMap
+  envFromConfigMap:
+    - name: NEXT_PUBLIC_API_URL
+      key: backend-url
+  
+  # Environment variables from Secrets
+  envFromSecrets:
+    - name: NEXT_PUBLIC_BETTER_AUTH_SECRET
+      secretName: todo-secrets
+      secretKey: BETTER_AUTH_SECRET
+  
+  # Health check probes
+  probes:
+    liveness:
+      enabled: true
+      httpGet:
+        path: /
+        port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readiness:
+      enabled: true
+      httpGet:
+        path: /
+        port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+    startup:
+      enabled: false
+      httpGet:
+        path: /
+        port: 3000
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+  
+  # Horizontal Pod Autoscaler
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+    # maxUnavailable: 1
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 101
+    runAsGroup: 101
+    fsGroup: 101
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+    runAsUser: 101
+    capabilities:
+      drop:
+        - ALL
+  
+  # ServiceAccount
+  serviceAccount:
+    create: true
+    name: frontend-sa
+    annotations: {}
+    # For IRSA (AWS IAM Roles for Service Accounts)
+    # eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/frontend-role
+  
+  # Pod annotations and labels
+  podAnnotations: {}
+  podLabels: {}
+  
+  # Node selector and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  
+  # Additional volumes and volume mounts
+  extraVolumes: []
+  extraVolumeMounts: []
+  
+  # Init containers
+  initContainers: []
+  
+  # Sidecar containers
+  sidecars: []
+
+# -----------------------------------------------------------------------------
+# Backend Configuration (FastAPI)
+# -----------------------------------------------------------------------------
+backend:
+  enabled: true
+  name: backend
+  
+  # Container image configuration
+  image:
+    repository: todo-backend
+    tag: v1
+    pullPolicy: IfNotPresent
+  
+  # Number of replicas (HPA will manage this if enabled)
+  replicaCount: 2
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 4000
+    nodePort: null
+    annotations: {}
+  
+  # Resource limits and requests
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  # Environment variables
+  env:
+    PYTHON_ENV: production
+    LOG_LEVEL: INFO
+    PORT: "4000"
+  
+  # Environment variables from ConfigMap
+  envFromConfigMap:
+    - name: DATABASE_URL
+      key: database-url
+    - name: API_PREFIX
+      key: api-prefix
+  
+  # Environment variables from Secrets
+  envFromSecrets:
+    - name: BETTER_AUTH_SECRET
+      secretName: todo-secrets
+      secretKey: BETTER_AUTH_SECRET
+    - name: OPENAI_API_KEY
+      secretName: todo-secrets
+      secretKey: OPENAI_API_KEY
+      optional: true
+  
+  # Health check probes
+  probes:
+    liveness:
+      enabled: true
+      httpGet:
+        path: /health
+        port: 4000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readiness:
+      enabled: true
+      httpGet:
+        path: /health
+        port: 4000
+      initialDelaySeconds: 15
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+    startup:
+      enabled: true
+      httpGet:
+        path: /health
+        port: 4000
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+  
+  # Horizontal Pod Autoscaler
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+  
+  # ServiceAccount
+  serviceAccount:
+    create: true
+    name: backend-sa
+    annotations: {}
+  
+  # Pod annotations and labels
+  podAnnotations: {}
+  podLabels: {}
+  
+  # Node selector and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  
+  # Additional volumes and volume mounts
+  extraVolumes: []
+  extraVolumeMounts: []
+  
+  # Init containers (e.g., wait for database)
+  initContainers:
+    - name: wait-for-db
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - |
+          until nc -z $DATABASE_HOST $DATABASE_PORT; do
+            echo "Waiting for database at $DATABASE_HOST:$DATABASE_PORT...";
+            sleep 2;
+          done;
+          echo "Database is available!";
+      env:
+        - name: DATABASE_HOST
+          value: "todo-app-postgres"
+        - name: DATABASE_PORT
+          value: "5432"
+  
+  # Sidecar containers
+  sidecars: []
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Configuration
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  name: postgres
+  
+  # Container image configuration
+  image:
+    repository: postgres
+    tag: 15-alpine
+    pullPolicy: IfNotPresent
+  
+  # Number of replicas (1 for StatefulSet)
+  replicaCount: 1
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+    nodePort: null
+    annotations: {}
+  
+  # Resource limits and requests
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  # Environment variables
+  env:
+    POSTGRES_DB: todoapp
+    POSTGRES_USER: todouser
+    PGDATA: /var/lib/postgresql/data/pgdata
+  
+  # Password from secret (required)
+  passwordSecret:
+    secretName: todo-secrets
+    secretKey: POSTGRES_PASSWORD
+  
+  # Health check probes
+  probes:
+    liveness:
+      enabled: true
+      exec:
+        command:
+          - pg_isready
+          - -U
+          - todouser
+          - -d
+          - todoapp
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readiness:
+      enabled: true
+      exec:
+        command:
+          - pg_isready
+          - -U
+          - todouser
+          - -d
+          - todoapp
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+  
+  # Persistent volume configuration
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""  # Use default storage class
+    accessModes:
+      - ReadWriteOnce
+    annotations: {}
+    labels: {}
+  
+  # Security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+  
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+  
+  # ServiceAccount
+  serviceAccount:
+    create: true
+    name: postgres-sa
+    annotations: {}
+  
+  # Pod annotations and labels
+  podAnnotations: {}
+  podLabels: {}
+  
+  # Node selector and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Additional volumes and volume mounts
+  extraVolumes: []
+  extraVolumeMounts: []
+  
+  # Init containers
+  initContainers: []
+  
+  # Sidecar containers
+  sidecars: []
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  
+  # Ingress class name
+  className: nginx
+  
+  # Ingress annotations
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  
+  # Host configuration
+  hosts:
+    - host: todo-app.local
+      paths:
+        # Backend API routes
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: backend
+              port: 8080
+          pathRewrite:
+            - pattern: "^/api"
+              replacement: ""
+        # Frontend routes (catch-all)
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: frontend
+              port: 80
+  
+  # TLS configuration
+  tls: []
+  # - secretName: todo-app-tls
+  #   hosts:
+  #     - todo-app.local
+  
+  # Ingress labels
+  labels: {}
+
+# -----------------------------------------------------------------------------
+# ConfigMap Configuration
+# -----------------------------------------------------------------------------
+configMap:
+  enabled: true
+  name: todo-config
+  data:
+    # Backend URL for frontend
+    backend-url: "http://backend:8080/api/v1"
+    # Database URL for backend
+    database-url: "postgresql://todouser:$(POSTGRES_PASSWORD)@postgres:5432/todoapp"
+    # API prefix
+    api-prefix: "/api/v1"
+
+# -----------------------------------------------------------------------------
+# Secrets Configuration
+# -----------------------------------------------------------------------------
+secrets:
+  enabled: true
+  name: todo-secrets
+  
+  # Secret data (will be base64 encoded automatically)
+  # IMPORTANT: Change these values in production!
+  stringData:
+    POSTGRES_PASSWORD: "secure_postgres_password_change_me"
+    BETTER_AUTH_SECRET: "secure_better_auth_secret_key_change_me"
+    OPENAI_API_KEY: ""  # Add your OpenAI API key here
+  
+  # Or use existing secrets
+  # existingSecret: my-existing-secret
+
+# -----------------------------------------------------------------------------
+# NetworkPolicy Configuration
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  
+  # Default deny all ingress traffic
+  defaultDeny: true
+  
+  # Allow frontend to access backend
+  frontendToBackend:
+    enabled: true
+  
+  # Allow backend to access postgres
+  backendToPostgres:
+    enabled: true
+  
+  # Allow ingress controller to access frontend and backend
+  ingressAccess:
+    enabled: true
+    ingressNamespace: ingress-nginx  # Namespace where ingress controller runs
+
+# -----------------------------------------------------------------------------
+# ServiceAccount Configuration (Global)
+# -----------------------------------------------------------------------------
+serviceAccount:
+  # Create default service account
+  create: true
+  name: todo-app-sa
+  annotations: {}
+
+# -----------------------------------------------------------------------------
+# RBAC Configuration
+# -----------------------------------------------------------------------------
+rbac:
+  enabled: false
+  rules: []
+  # - apiGroups: [""]
+  #   resources: ["configmaps", "secrets"]
+  #   verbs: ["get", "list", "watch"]
+
+# -----------------------------------------------------------------------------
+# PodDisruptionBudget Configuration (Global overrides)
+# -----------------------------------------------------------------------------
+pdb:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Monitoring Configuration
+# -----------------------------------------------------------------------------
+monitoring:
+  # ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    enabled: false
+    namespace: monitoring
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+  
+  # PodMonitor for Prometheus Operator
+  podMonitor:
+    enabled: false
+    namespace: monitoring
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+
+# -----------------------------------------------------------------------------
+# Backup Configuration (for PostgreSQL)
+# -----------------------------------------------------------------------------
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retentionDays: 7
+  storageClass: ""
+  size: 10Gi

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: phase3-config
+  namespace: phase3
+data:
+  # Frontend Configuration
+  FRONTEND_NODE_ENV: "production"
+  FRONTEND_PORT: "3000"
+  
+  # Backend Configuration
+  BACKEND_PYTHON_ENV: "production"
+  BACKEND_LOG_LEVEL: "INFO"
+  BACKEND_PORT: "4000"
+  
+  # Database Configuration
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "todoapp"
+  
+  # Service URLs
+  FRONTEND_SERVICE_URL: "http://frontend-service:80"
+  BACKEND_SERVICE_URL: "http://backend-service:8080"

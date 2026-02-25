@@ -1,0 +1,45 @@
+# Spec-Kit Configuration
+# Phase III Enabled – Todo AI Chatbot
+
+version: 1.0
+
+workflow:
+  enabled: true
+  tools:
+    - claude
+    - github
+    - docker
+
+project:
+  name: hackathon-todo
+  type: full-stack
+  description: Full-stack Todo app with AI chatbot using MCP and OpenAI Agents SDK
+
+structure:
+  specs_dir: specs
+  features_dir: specs/features
+  api_dir: specs/api
+  database_dir: specs/database
+  ui_dir: specs/ui
+
+phases:
+  - name: phase1-console
+    features:
+      - task-crud
+
+  - name: phase2-web
+    features:
+      - task-crud
+      - authentication
+
+  - name: phase3-chatbot
+    features:
+      - task-crud
+      - authentication
+      - chatbot
+
+specifications:
+  directory: specs
+  formats:
+    - markdown
+    - yaml

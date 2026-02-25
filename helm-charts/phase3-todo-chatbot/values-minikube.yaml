@@ -1,0 +1,109 @@
+# Minikube-specific values for phase3-todo-chatbot
+# Optimized for local development with limited resources
+
+global:
+  namespace: phase3
+  imageRegistry: ""
+  storageClass: "standard"
+
+# Frontend - Minikube optimized
+frontend:
+  replicaCount: 2
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Backend - Minikube optimized
+backend:
+  replicaCount: 2
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+
+# PostgreSQL - Minikube optimized
+postgresql:
+  replicaCount: 1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: "standard"
+
+# Ingress - Minikube specific
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: backend
+              port: 8080
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: frontend
+              port: 80
+
+# Secrets for Minikube (development values)
+secrets:
+  enabled: true
+  postgresUser: "phase3user"
+  postgresPassword: "phase3password123"
+  postgresDB: "todoapp"
+  betterAuthSecret: "minikube_dev_secret_key_change_in_production"
+  openaiApiKey: ""
+
+# Network Policy
+networkPolicy:
+  enabled: true
+
+# RBAC
+rbac:
+  enabled: true
+  serviceAccount:
+    create: true
+    name: phase3-sa
+
+# Pod Disruption Budget - disabled for single replica setups
+podDisruptionBudget:
+  frontend:
+    enabled: true
+    minAvailable: 1
+  backend:
+    enabled: true
+    minAvailable: 1

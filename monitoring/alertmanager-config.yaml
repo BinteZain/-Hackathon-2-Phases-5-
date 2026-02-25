@@ -1,0 +1,251 @@
+# Alertmanager Configuration
+# File: monitoring/alertmanager-config.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-monitoring-alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    release: monitoring
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+      
+      # Slack configuration
+      slack_api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+      
+      # PagerDuty (optional)
+      # pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+      
+      # SMTP configuration (optional)
+      # smtp_smarthost: 'smtp.example.com:587'
+      # smtp_from: 'alertmanager@example.com'
+      # smtp_auth_username: 'alertmanager@example.com'
+      # smtp_auth_password: 'password'
+    
+    # Templates for notifications
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
+    
+    # Routing tree
+    route:
+      # Default receiver
+      receiver: 'slack-notifications'
+      
+      # Group alerts by these labels
+      group_by: ['alertname', 'namespace', 'severity']
+      
+      # Wait time before sending first notification
+      group_wait: 10s
+      
+      # Wait time before sending notifications about new alerts
+      group_interval: 10s
+      
+      # Wait time before resending notification
+      repeat_interval: 1h
+      
+      # Child routes for specific alert types
+      routes:
+        # Critical alerts → Immediate notification
+        - match:
+            severity: critical
+          receiver: 'slack-critical'
+          group_wait: 5s
+          repeat_interval: 30m
+          continue: true
+        
+        # Warning alerts → Standard notification
+        - match:
+            severity: warning
+          receiver: 'slack-warning'
+          group_wait: 30s
+          repeat_interval: 2h
+        
+        # Database alerts → DBA team
+        - match:
+            service: postgresql
+          receiver: 'slack-database'
+        
+        # Kafka alerts → Platform team
+        - match:
+            service: kafka
+          receiver: 'slack-platform'
+        
+        # Dapr alerts → Platform team
+        - match:
+            service: dapr
+          receiver: 'slack-platform'
+        
+        # Application alerts → Dev team
+        - match:
+            service: chat-api
+          receiver: 'slack-dev'
+    
+    # Receivers
+    receivers:
+      # Default Slack receiver
+      - name: 'slack-notifications'
+        slack_configs:
+          - channel: '#alerts'
+            send_resolved: true
+            icon_emoji: ':bell:'
+            title: '{{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Severity:* {{ .Labels.severity }}
+              *Description:* {{ .Annotations.description }}
+              *Started:* {{ .StartsAt }}
+              {{ end }}
+      
+      # Critical alerts receiver
+      - name: 'slack-critical'
+        slack_configs:
+          - channel: '#alerts-critical'
+            send_resolved: true
+            icon_emoji: ':rotating_light:'
+            username: 'AlertBot Critical'
+            title: '🚨 CRITICAL ALERT: {{ .CommonAnnotations.summary }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Severity:* {{ .Labels.severity }}
+              *Service:* {{ .Labels.service }}
+              *Description:* {{ .Annotations.description }}
+              *Started:* {{ .StartsAt }}
+              *Runbook:* {{ .Annotations.runbook_url }}
+              {{ end }}
+            actions:
+              - type: button
+                text: 'View Runbook'
+                url: '{{ .CommonAnnotations.runbook_url }}'
+              - type: button
+                text: 'View in Grafana'
+                url: 'http://grafana.todo-chatbot.com'
+      
+      # Warning alerts receiver
+      - name: 'slack-warning'
+        slack_configs:
+          - channel: '#alerts-warning'
+            send_resolved: true
+            icon_emoji: ':warning:'
+            username: 'AlertBot Warning'
+            title: '⚠️ WARNING: {{ .CommonAnnotations.summary }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Severity:* {{ .Labels.severity }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+      
+      # Database team receiver
+      - name: 'slack-database'
+        slack_configs:
+          - channel: '#alerts-database'
+            send_resolved: true
+            icon_emoji: ':database:'
+            title: '🗄️ Database Alert: {{ .CommonAnnotations.summary }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+      
+      # Platform team receiver
+      - name: 'slack-platform'
+        slack_configs:
+          - channel: '#alerts-platform'
+            send_resolved: true
+            icon_emoji: ':gear:'
+            title: '⚙️ Platform Alert: {{ .CommonAnnotations.summary }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Service:* {{ .Labels.service }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+      
+      # Development team receiver
+      - name: 'slack-dev'
+        slack_configs:
+          - channel: '#alerts-dev'
+            send_resolved: true
+            icon_emoji: ':rocket:'
+            title: '🚀 Application Alert: {{ .CommonAnnotations.summary }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Service:* {{ .Labels.service }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+      
+      # Email receiver (optional)
+      - name: 'email-notifications'
+        email_configs:
+          - to: 'oncall@todo-chatbot.com'
+            send_resolved: true
+            subject: '[{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}'
+            body: |
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Severity: {{ .Labels.severity }}
+              Description: {{ .Annotations.description }}
+              Started: {{ .StartsAt }}
+              {{ end }}
+      
+      # PagerDuty receiver (optional)
+      # - name: 'pagerduty-critical'
+      #   pagerduty_configs:
+      #     - service_key: 'your-pagerduty-service-key'
+      #       severity: critical
+      #       description: '{{ .CommonAnnotations.summary }}'
+    
+    # Inhibition rules
+    # Suppress warning alerts if critical alert exists for same alertname/namespace
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'namespace', 'service']
+      
+      # Suppress all alerts if service is down
+      - source_match:
+          alertname: 'TodoAppServiceDown'
+        target_match_re:
+          service: '.*'
+        equal: ['namespace']
+      
+      # Suppress Kafka consumer lag if broker is down
+      - source_match:
+          alertname: 'KafkaBrokerDown'
+        target_match:
+          alertname: 'KafkaConsumerLag'
+        equal: ['namespace']
+      
+      # Suppress pod alerts if node is down
+      - source_match:
+          alertname: 'NodeDown'
+        target_match_re:
+          alertname: 'Pod.*'
+        equal: ['namespace']
+    
+    # Mute time intervals (optional)
+    # mute_time_intervals:
+    #   - name: 'business-hours'
+    #     time_intervals:
+    #       - times:
+    #           - start_time: '09:00'
+    #             end_time: '17:00'
+    #         weekdays: ['monday:friday']
+    
+    # Silence maintenance window (optional)
+    # maintenance_silence:
+    #   matchers:
+    #     - alertname = ".*"
+    #   startsAt: '2024-01-01T00:00:00Z'
+    #   endsAt: '2024-01-01T06:00:00Z'
