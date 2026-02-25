@@ -1,17 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "name": "hackathon-phase-5",
   "framework": "nextjs",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/.next",
   "installCommand": "cd frontend && npm install",
   "rootDirectory": "frontend",
-  "environment": {
-    "NODE_VERSION": "20.11.0"
-  },
   "env": {
-    "NEXT_PUBLIC_API_URL": "@next-public-api-url",
-    "NEXT_PUBLIC_BETTER_AUTH_SECRET": "@next-public-better-auth-secret"
+    "NODE_VERSION": "20.11.0"
   },
   "headers": [
     {
@@ -28,10 +23,6 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=31536000; includeSubDomains"
         }
       ]
     }
@@ -45,6 +36,5 @@
       "source": "/(.*)",
       "destination": "/$1"
     }
-  ],
-  "regions": ["iad1"]
+  ]
 }
