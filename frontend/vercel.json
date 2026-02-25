@@ -1,9 +1,13 @@
 {
-  "name": "hackathon-2-phases-4-frontend",
+  "name": "hackathon-2-phases-5-frontend",
   "framework": "nextjs",
-  "buildCommand": "npm install && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "env": {
+    "NODE_VERSION": "20"
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -19,13 +23,12 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
         }
       ]
     }
-  ],
-  "build": {
-    "env": {
-      "NODE_VERSION": "20"
-    }
-  }
+  ]
 }
