@@ -6,6 +6,11 @@ node_modules/
 .pnp.js
 vendor/
 
+# Frontend dependencies (inside frontend folder)
+frontend/node_modules/
+frontend/.next/
+frontend/.vercel/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -19,6 +24,10 @@ env/
 pip-log.txt
 pip-delete-this-directory.txt
 *.egg-info/
+
+# Backend dependencies
+backend/venv/
+backend/__pycache__/
 
 # ===========================
 # IDE & EDITORS
@@ -50,6 +59,14 @@ dist/
 .env.example.local
 .evn.local
 *.env
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/.evn.local
 
 # ===========================
 # DATABASE
